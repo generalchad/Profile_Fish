@@ -12,6 +12,18 @@ function fish_greeting
     # Add custom greeting here if desired
 end
 
+# --- Terminal Query Fix ---
+# fish (>=4.1) queries the terminal for its background color via `ESC]11;?`
+# on startup. Under some terminals/multiplexers (e.g. Yakuake + Zellij) the
+# reply can race the first prompt and get typed onto the command line as
+# "11;rgb:1e1e/2323/2626". Disabling the `query-term` feature flag stops all
+# such startup queries (background color, cursor position, etc.).
+# Feature flags are only read at startup from a universal/exported variable,
+# so this takes effect on the next shell.
+if not contains no-query-term $fish_features
+    set -Ua fish_features no-query-term
+end
+
 # --- PATH Construction ---
 fish_add_path $HOME/bin
 fish_add_path $HOME/.local/bin
