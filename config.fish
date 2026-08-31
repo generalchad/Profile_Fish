@@ -165,6 +165,17 @@ end
 
 alias format-usb='formatusb'
 
+# --- Package Listing ---
+# List every installed package with version, install date, and origin
+# (official repo vs AUR). Reuses pacman's native/foreign split.
+function list-packages
+    echo "--- Official Repos (Pacman) ---"
+    expac '%n\t%v\t%l' (pacman -Qqn) | column -t -s (printf '\t')
+    echo
+    echo "--- AUR (Paru) ---"
+    expac '%n\t%v\t%l' (pacman -Qmq) | column -t -s (printf '\t')
+end
+
 # --- Process Management ---
 alias p='ps aux | grep -v grep'
 alias ps='ps auxf'
