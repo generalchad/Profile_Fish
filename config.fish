@@ -70,16 +70,57 @@ function weather
     clear; and curl wttr.in/"$argv[1]"
 end
 
-# Edit this profile in the primary editor. Resolves the editor explicitly
-# because fish does not word-split $EDITOR (which may be "code --wait").
-function ep
+# Resolve the primary editor explicitly (fish does not word-split $EDITOR,
+# which may be "code --wait") and open the given path.
+function _edit -a path
     if type -q code-insiders
-        code-insiders --wait ~/.config/fish/config.fish
+        code-insiders --wait $path
     else if type -q nvim
-        nvim ~/.config/fish/config.fish
+        nvim $path
     else
-        vi ~/.config/fish/config.fish
+        vi $path
     end
+end
+
+# Edit the live profile.
+function ep
+    _edit ~/.config/fish/config.fish
+end
+
+# Edit the project profile (git-tracked source of truth).
+function epr
+    _edit ~/Projects/Profile_Fish/config.fish
+end
+
+# Sync the project profile to the live location and reload the shell.
+# Use -p/--push to also git commit + push (never automatic).
+function golive
+    argparse 'p/push' 'm/message=' -- $argv
+    or return
+
+    set -l src ~/Projects/Profile_Fish/config.fish
+    set -l dst ~/.config/fish/config.fish
+
+    if not test -f $src
+        echo "golive: source not found: $src" >&2
+        return 1
+    end
+
+    cp $src $dst
+    or return 1
+
+    if set -q _flag_push
+        set -l msg $_flag_message
+        if test -z "$msg"
+            set msg "Update fish profile"
+        end
+        git -C ~/Projects/Profile_Fish add .
+        git -C ~/Projects/Profile_Fish commit -m "$msg"
+        git -C ~/Projects/Profile_Fish push
+    end
+
+    source $dst
+    echo "Fish profile synced and reloaded."
 end
 
 # ==========================================
