@@ -153,7 +153,7 @@ alias reload-fish='source ~/.config/fish/config.fish && echo "Fish config reload
 # --- Hardware & Utilities ---
 # Safely format a removable drive (requires explicit FORMAT confirmation).
 function format-usb
-    argparse 'f/force' 'y/yes' -- $argv
+    argparse 'f/force' 'y/yes' 'n/name=' -- $argv
     or return
 
     set -l device $argv[1]
@@ -166,8 +166,8 @@ function format-usb
         echo "Available block devices:" >&2
         lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL >&2
         echo >&2
-        echo "Usage: format-usb <device> [filesystem] [--force|--yes]" >&2
-        echo "  e.g. format-usb /dev/sdb vfat   (vfat|exfat|ext4)" >&2
+        echo "Usage: format-usb <device> [filesystem] [--name LABEL] [--force|--yes]" >&2
+        echo "  e.g. format-usb /dev/sdb vfat --name MyDrive   (vfat|exfat|ext4)" >&2
         return 1
     end
 
@@ -205,6 +205,16 @@ function format-usb
         case '*'
             echo "format-usb: unsupported filesystem '$fs' (vfat|exfat|ext4)" >&2
             return 1
+    end
+
+    set -l label $_flag_name
+    if test -n "$label"
+        switch $fs
+            case ext4
+                set -a mkfs -L $label
+            case '*'
+                set -a mkfs -n $label
+        end
     end
 
     if not command -q $mkfs[1]
