@@ -177,7 +177,20 @@ function format-usb
     end
 
     if not lsblk $device >/dev/null 2>&1
-        echo "formatusb: device not found: $device" >&2
+        echo "format-usb: device not found: $device" >&2
+        return 1
+    end
+
+    set -l base (lsblk -ndo PKNAME $device)
+    if test -z "$base"
+        set base (basename $device)
+    end
+    if not test -f /sys/block/$base/removable
+        echo "format-usb: cannot determine if $device is removable" >&2
+        return 1
+    end
+    if not set -q _flag_force; and not set -q _flag_yes; and not test (cat /sys/block/$base/removable) -eq 1
+        echo "format-usb: $device is not a removable device (use --force to override)" >&2
         return 1
     end
 
@@ -189,26 +202,29 @@ function format-usb
             set mkfs mkfs.exfat
         case ext4
             set mkfs mkfs.ext4
-        case ntfs
-            set mkfs mkfs.ntfs
         case '*'
             echo "format-usb: unsupported filesystem '$fs' (vfat|exfat|ext4)" >&2
             return 1
     end
 
-    echo "WARNING: This will permanently ERASE all data on $device" >&2
-    lsblk -o NAME,SIZE,MODEL $device >&2
-    echo >&2
-    read -P "Type FORMAT to confirm: " confirm
-    if test "$confirm" != FORMAT
-        echo "Aborted." >&2
+    if not command -q $mkfs[1]
+        echo "format-usb: $mkfs[1] not installed" >&2
         return 1
+    end
+
+    if not set -q _flag_force; and not set -q _flag_yes
+        echo "WARNING: This will permanently ERASE all data on $device" >&2
+        lsblk -o NAME,SIZE,MODEL $device >&2
+        echo >&2
+        read -P "Type FORMAT to confirm: " confirm
+        if test "$confirm" != FORMAT
+            echo "Aborted." >&2
+            return 1
+        end
     end
 
     sudo $mkfs $device
 end
-
-alias format-usb='formatusb'
 
 # --- Package Listing ---
 # List every installed package with version, install date, and origin
