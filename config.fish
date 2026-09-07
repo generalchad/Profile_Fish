@@ -45,6 +45,15 @@ end
 # ==========================================
 
 function ask-gemini
+    if contains -- $argv[1] -h --help
+        echo "Usage: ask-gemini \"your question here\""
+        echo
+        echo "Ask a question to the Gemini model and render the response."
+        echo
+        echo "Options:"
+        echo "  -h, --help  Show this help"
+        return 0
+    end
     if test (count $argv) -eq 0
         echo "Usage: ask-gemini \"your question here\""
         return 1
@@ -94,15 +103,27 @@ end
 
 # Sync the project profile to the live location and reload the shell.
 # Use -p/--push to also git commit + push (never automatic).
-function golive
-    argparse 'p/push' 'm/message=' -- $argv
+function go-live
+    argparse 'p/push' 'm/message=' 'h/help' -- $argv
     or return
+
+    if set -q _flag_help
+        echo "Usage: go-live [-p|--push] [-m|--message MSG]"
+        echo
+        echo "Sync the project profile to the live location and reload the shell."
+        echo
+        echo "Options:"
+        echo "  -p, --push         Also git commit + push (never automatic)"
+        echo "  -m, --message MSG  Commit message for --push (default: \"Update fish profile\")"
+        echo "  -h, --help         Show this help"
+        return 0
+    end
 
     set -l src ~/Projects/Profile_Fish/config.fish
     set -l dst ~/.config/fish/config.fish
 
     if not test -f $src
-        echo "golive: source not found: $src" >&2
+        echo "go-live: source not found: $src" >&2
         return 1
     end
 
@@ -132,6 +153,18 @@ alias vi="nvim"
 # --- Dotfiles Version Control ---
 # Bare-repo dotfiles manager (git over $HOME). Run `config init` once to set up.
 function config
+    if contains -- $argv[1] -h --help
+        echo "Usage: config <git-command> [args]"
+        echo "       config init"
+        echo
+        echo "Bare-repo dotfiles manager (git over \$HOME)."
+        echo
+        echo "Commands:"
+        echo "  init  Initialize the dotfiles repo at ~/.dotfiles"
+        echo
+        echo "Any other arguments are passed to git over the dotfiles repo."
+        return 0
+    end
     if test "$argv[1]" = init
         git init --bare $HOME/.dotfiles
         /usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME config --local status.showUntrackedFiles no
@@ -153,8 +186,29 @@ alias reload-fish='source ~/.config/fish/config.fish && echo "Fish config reload
 # --- Hardware & Utilities ---
 # Safely format a removable drive (requires explicit FORMAT confirmation).
 function format-usb
-    argparse 'f/force' 'y/yes' 'n/name=' -- $argv
+    argparse 'f/force' 'y/yes' 'n/name=' 'h/help' -- $argv
     or return
+
+    if set -q _flag_help
+        echo "Usage: format-usb <device> [filesystem] [--name LABEL] [--force|--yes]"
+        echo
+        echo "Safely format a removable drive (requires FORMAT confirmation)."
+        echo
+        echo "Arguments:"
+        echo "  <device>       Block device path (e.g. /dev/sdb)"
+        echo "  [filesystem]   vfat (default), exfat, or ext4"
+        echo
+        echo "Options:"
+        echo "  -n, --name LABEL  Set volume label"
+        echo "  -f, --force       Skip removable-device check and confirmation"
+        echo "  -y, --yes         Skip confirmation prompt"
+        echo "  -h, --help        Show this help"
+        echo
+        echo "Examples:"
+        echo "  format-usb /dev/sdb"
+        echo "  format-usb /dev/sdb exfat --name MyDrive"
+        return 0
+    end
 
     set -l device $argv[1]
     set -l fs $argv[2]
@@ -167,7 +221,22 @@ function format-usb
         lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL >&2
         echo >&2
         echo "Usage: format-usb <device> [filesystem] [--name LABEL] [--force|--yes]" >&2
-        echo "  e.g. format-usb /dev/sdb vfat --name MyDrive   (vfat|exfat|ext4)" >&2
+        echo >&2
+        echo "Safely format a removable drive (requires FORMAT confirmation)." >&2
+        echo >&2
+        echo "Arguments:" >&2
+        echo "  <device>       Block device path (e.g. /dev/sdb)" >&2
+        echo "  [filesystem]   vfat (default), exfat, or ext4" >&2
+        echo >&2
+        echo "Options:" >&2
+        echo "  -n, --name LABEL  Set volume label" >&2
+        echo "  -f, --force       Skip removable-device check and confirmation" >&2
+        echo "  -y, --yes         Skip confirmation prompt" >&2
+        echo "  -h, --help        Show this help" >&2
+        echo >&2
+        echo "Examples:" >&2
+        echo "  format-usb /dev/sdb" >&2
+        echo "  format-usb /dev/sdb exfat --name MyDrive" >&2
         return 1
     end
 
@@ -281,10 +350,24 @@ alias web='cd /var/www/html'
 
 # Test SMTP connectivity and banner retrieval for a host or known alias.
 # Defaults to ports 25/587/465/2525. Parity with Test-SmtpRelay.
-function checksmtp
+function check-smtp
+    if contains -- $argv[1] -h --help
+        echo "Usage: check-smtp <host|alias> [port ...]"
+        echo
+        echo "Test SMTP connectivity and banner retrieval for a host or known alias."
+        echo "Defaults to ports 25/587/465/2525."
+        echo
+        echo "Arguments:"
+        echo "  <host|alias>  Hostname or known alias (e.g. smtp.gmail.com or gmail)"
+        echo "  [port ...]    TCP ports to test (default: 25 587 465 2525)"
+        echo
+        echo "Options:"
+        echo "  -h, --help  Show this help"
+        return 0
+    end
     if test (count $argv) -eq 0
-        echo "Usage: checksmtp <host|alias> [port ...]"
-        echo "       e.g. checksmtp smtp.gmail.com   or   checksmtp gmail"
+        echo "Usage: check-smtp <host|alias> [port ...]" >&2
+        echo "       e.g. check-smtp smtp.gmail.com   or   check-smtp gmail" >&2
         return 1
     end
 
@@ -379,42 +462,42 @@ alias pinggw='ping (ip route show | grep default | awk \'{print $3}\' | head -n 
 alias flushdns='sudo resolvectl flush-caches && echo "DNS Caches Flushed"'
 
 # --- SMTP Connectivity Tools ---
-alias cs='checksmtp'
-alias testmail='checksmtp'
-alias checkmail='checksmtp'
+alias cs='check-smtp'
+alias testmail='check-smtp'
+alias checkmail='check-smtp'
 
 # 1. Major Providers
-alias csgmail='checksmtp smtp.gmail.com'
-alias cso365='checksmtp smtp.office365.com'
-alias csoutlook='checksmtp smtp-mail.outlook.com'
-alias csyahoo='checksmtp smtp.mail.yahoo.com'
-alias csaol='checksmtp smtp.aol.com'
-alias csicloud='checksmtp smtp.mail.me.com'
-alias cszoho='checksmtp smtp.zoho.com'
+alias csgmail='check-smtp smtp.gmail.com'
+alias cso365='check-smtp smtp.office365.com'
+alias csoutlook='check-smtp smtp-mail.outlook.com'
+alias csyahoo='check-smtp smtp.mail.yahoo.com'
+alias csaol='check-smtp smtp.aol.com'
+alias csicloud='check-smtp smtp.mail.me.com'
+alias cszoho='check-smtp smtp.zoho.com'
 
 # 2. Transactional / Dev
-alias csgo='checksmtp smtp.smtp2go.com'
-alias cssendgrid='checksmtp smtp.sendgrid.net'
-alias csmailgun='checksmtp smtp.mailgun.org'
-alias cspostmark='checksmtp smtp.postmarkapp.com'
-alias csmandrill='checksmtp smtp.mandrillapp.com'
-alias csbrevo='checksmtp smtp-relay.sendinblue.com'
-alias csmailjet='checksmtp in-v3.mailjet.com'
-alias csses='checksmtp email-smtp.us-east-1.amazonaws.com'
+alias csgo='check-smtp smtp.smtp2go.com'
+alias cssendgrid='check-smtp smtp.sendgrid.net'
+alias csmailgun='check-smtp smtp.mailgun.org'
+alias cspostmark='check-smtp smtp.postmarkapp.com'
+alias csmandrill='check-smtp smtp.mandrillapp.com'
+alias csbrevo='check-smtp smtp-relay.sendinblue.com'
+alias csmailjet='check-smtp in-v3.mailjet.com'
+alias csses='check-smtp email-smtp.us-east-1.amazonaws.com'
 
 # 3. ISP / Telecom
-alias cscomcast='checksmtp smtp.comcast.net'
-alias csatt='checksmtp outbound.att.net'
-alias csverizon='checksmtp smtp.verizon.net'
-alias csspectrum='checksmtp mail.twc.com'
-alias cscox='checksmtp smtp.cox.net'
-alias cscentury='checksmtp smtp.centurylink.net'
+alias cscomcast='check-smtp smtp.comcast.net'
+alias csatt='check-smtp outbound.att.net'
+alias csverizon='check-smtp smtp.verizon.net'
+alias csspectrum='check-smtp mail.twc.com'
+alias cscox='check-smtp smtp.cox.net'
+alias cscentury='check-smtp smtp.centurylink.net'
 
 # 4. Web Hosting
-alias csgodaddy='checksmtp smtpout.secureserver.net'
-alias csrackspace='checksmtp secure.emailsrvr.com'
-alias csionos='checksmtp smtp.ionos.com'
-alias csbluehost='checksmtp smtp.bluehost.com'
+alias csgodaddy='check-smtp smtpout.secureserver.net'
+alias csrackspace='check-smtp secure.emailsrvr.com'
+alias csionos='check-smtp smtp.ionos.com'
+alias csbluehost='check-smtp smtp.bluehost.com'
 
 # ==========================================
 # 6. GIT SHORTCUTS
