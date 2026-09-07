@@ -151,8 +151,12 @@ alias cls='clear'
 alias reload-fish='source ~/.config/fish/config.fish && echo "Fish config reloaded."'
 
 # --- Hardware & Utilities ---
-# Safely format a USB/removable drive (requires explicit FORMAT confirmation).
-function formatusb -a device
+# Safely format a removable drive (requires explicit FORMAT confirmation).
+function format-usb
+    argparse 'f/force' 'y/yes' -- $argv
+    or return
+
+    set -l device $argv[1]
     set -l fs $argv[2]
     if not test -n "$fs"
         set fs vfat
@@ -162,13 +166,13 @@ function formatusb -a device
         echo "Available block devices:" >&2
         lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL >&2
         echo >&2
-        echo "Usage: formatusb <device> [filesystem]" >&2
-        echo "  e.g. formatusb /dev/sdb vfat   (vfat|exfat|ext4|ntfs)" >&2
+        echo "Usage: format-usb <device> [filesystem] [--force|--yes]" >&2
+        echo "  e.g. format-usb /dev/sdb vfat   (vfat|exfat|ext4)" >&2
         return 1
     end
 
     if not string match -q '/dev/*' "$device"
-        echo "formatusb: device must be an absolute path under /dev" >&2
+        echo "format-usb: device must be an absolute path under /dev" >&2
         return 1
     end
 
@@ -188,7 +192,7 @@ function formatusb -a device
         case ntfs
             set mkfs mkfs.ntfs
         case '*'
-            echo "formatusb: unsupported filesystem '$fs' (vfat|exfat|ext4|ntfs)" >&2
+            echo "format-usb: unsupported filesystem '$fs' (vfat|exfat|ext4)" >&2
             return 1
     end
 
